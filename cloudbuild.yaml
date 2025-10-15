@@ -15,9 +15,11 @@ steps:
 
         echo "Starting Cloud SQL Proxy in background..."
         /usr/local/bin/cloud_sql_proxy -instances=upheld-quasar-473307-h1:asia-south1:father-of-all-databases=tcp:5432 > /tmp/cloud_sql_proxy.log 2>&1 &
+        PROXY_PID=$$!
 
-        sleep 5        
-        echo "Cloud SQL Proxy started"
+        sleep 5
+
+        echo "Cloud SQL Proxy started with PID: $$PROXY_PID"
         cat /tmp/cloud_sql_proxy.log
 
         export DB_HOST=127.0.0.1
