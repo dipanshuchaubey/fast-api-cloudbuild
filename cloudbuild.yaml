@@ -5,7 +5,13 @@ steps:
     entrypoint: 'sh'
     args:
       - "-c"
-      - "/cloud_sql_proxy --structured-logs --port=5432 upheld-quasar-473307-h1:asia-south1:father-of-all-databases &"
+      - |
+        /cloud_sql_proxy --structured-logs --port=5432 upheld-quasar-473307-h1:asia-south1:father-of-all-databases &
+        PROXY_PID=$!
+        echo "Waiting for Cloud SQL Proxy to be ready..."
+        sleep 5
+        echo "Cloud SQL Proxy started with PID $PROXY_PID"
+        wait $PROXY_PID
 
   - name: 'asia-south1-docker.pkg.dev/upheld-quasar-473307-h1/testing-repo/fast-api'
     id: 'Run Container'
@@ -15,13 +21,19 @@ steps:
       - '-c'
       - |
         echo "Container is running"
-        export DB_HOST=${_DB_HOST}
-        export DB_PORT=${_DB_PORT}
+        
+        # Set DB connection to use Cloud SQL Proxy (localhost:5432)
+        export DB_HOST=127.0.0.1
+        export DB_PORT=5432
         export DB_DATABASE=${_DB_DATABASE}
         export DB_USER=${_DB_USER}
         export DB_PASSWORD=${_DB_PASSWORD}
 
         echo "Environment values: $$DB_HOST, $$DB_PORT, $$DB_DATABASE, $$DB_USER, $$DB_PASSWORD"
+        
+        # Wait a bit more for Cloud SQL Proxy to be fully ready
+        echo "Waiting for Cloud SQL Proxy to be ready..."
+        sleep 3
 
         # Navigate to the workspace directory (GCP Cloud Build automatically checks out code here)
         cd /workspace
@@ -43,4 +55,4 @@ steps:
 options:
   logging: CLOUD_LOGGING_ONLY
 
-timeout: 3600s
+timeout: 180s
