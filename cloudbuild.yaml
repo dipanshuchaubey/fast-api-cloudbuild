@@ -1,16 +1,6 @@
 steps:
-  - name: 'gcr.io/google-appengine/exec-wrapper'
-    id: 'CloudProxy'
-    waitFor: ['-']
-    entrypoint: 'sh'
-    args:
-      - "-c"
-      - |
-        /cloud_sql_proxy --structured-logs --port=5432 upheld-quasar-473307-h1:asia-south1:father-of-all-databases &
-
   - name: 'asia-south1-docker.pkg.dev/upheld-quasar-473307-h1/testing-repo/fast-api'
-    id: 'Run Container'
-    waitFor: ['CloudProxy']
+    id: 'Run Migrations'
     entrypoint: "sh"
     args:
       - '-c'
@@ -18,7 +8,17 @@ steps:
         set -e
         set -o pipefail
         
-        echo "Container is running"
+        echo "Installing cloud-sql-proxy..."
+        apk add --no-cache wget
+        wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O /usr/local/bin/cloud_sql_proxy
+        chmod +x /usr/local/bin/cloud_sql_proxy
+        
+        echo "Starting Cloud SQL Proxy in background..."
+        /usr/local/bin/cloud_sql_proxy --port=5432 upheld-quasar-473307-h1:asia-south1:father-of-all-databases &
+        PROXY_PID=$$!
+        
+        echo "Waiting for Cloud SQL Proxy to be ready..."
+        sleep 5
         
         # Set DB connection to use Cloud SQL Proxy (localhost:5432)
         export DB_HOST=127.0.0.1
@@ -28,10 +28,6 @@ steps:
         export DB_PASSWORD=${_DB_PASSWORD}
 
         echo "Environment values: $$DB_HOST, $$DB_PORT, $$DB_DATABASE, $$DB_USER, $$DB_PASSWORD"
-        
-        # Wait a bit more for Cloud SQL Proxy to be fully ready
-        echo "Waiting for Cloud SQL Proxy to be ready..."
-        sleep 3
 
         # Navigate to the workspace directory (GCP Cloud Build automatically checks out code here)
         cd /workspace
@@ -49,6 +45,9 @@ steps:
         alembic upgrade head
         
         echo "Migrations completed successfully!"
+        
+        # Kill the proxy
+        kill $$PROXY_PID || true
 
 options:
   logging: CLOUD_LOGGING_ONLY
