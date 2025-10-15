@@ -1,71 +1,43 @@
 steps:
-  - name: 'asia-south1-docker.pkg.dev/upheld-quasar-473307-h1/testing-repo/fast-api'
-    id: 'Run Migrations'
+  - name: "asia-south1-docker.pkg.dev/upheld-quasar-473307-h1/testing-repo/fast-api"
+    id: "Run Migrations"
     entrypoint: "sh"
     args:
-      - '-c'
+      - "-c"
       - |
         set -e
         set -o pipefail
-        
+
         echo "Installing cloud-sql-proxy and netcat..."
         apk add --no-cache wget netcat-openbsd
         wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O /usr/local/bin/cloud_sql_proxy
         chmod +x /usr/local/bin/cloud_sql_proxy
-        
+
         echo "Starting Cloud SQL Proxy in background..."
         /usr/local/bin/cloud_sql_proxy -instances=upheld-quasar-473307-h1:asia-south1:father-of-all-databases=tcp:5432 > /tmp/cloud_sql_proxy.log 2>&1 &
-        PROXY_PID=$$!
-        
-        echo "Cloud SQL Proxy started with PID: $$PROXY_PID"
-        
-        echo "Waiting for Cloud SQL Proxy to be ready..."
-        for i in 1 2 3 4 5 6 7 8 9 10; do
-          if nc -z 127.0.0.1 5432; then
-            echo "Cloud SQL Proxy is ready!"
-            break
-          fi
-          echo "Attempt $$i: Proxy not ready yet, waiting..."
-          sleep 2
-        done
-        
-        # Check if proxy is actually listening
-        if ! nc -z 127.0.0.1 5432; then
-          echo "ERROR: Cloud SQL Proxy failed to start!"
-          echo "Proxy logs:"
-          cat /tmp/cloud_sql_proxy.log
-          exit 1
-        fi
-        
-        echo "Cloud SQL Proxy is accepting connections on port 5432"
-        
-        # Set DB connection to use Cloud SQL Proxy (localhost:5432)
+
+        sleep 5        
+        echo "Cloud SQL Proxy started"
+        cat /tmp/cloud_sql_proxy.log
+
         export DB_HOST=127.0.0.1
         export DB_PORT=5432
         export DB_DATABASE=${_DB_DATABASE}
         export DB_USER=${_DB_USER}
         export DB_PASSWORD=${_DB_PASSWORD}
 
-        echo "Environment values: $$DB_HOST, $$DB_PORT, $$DB_DATABASE, $$DB_USER, $$DB_PASSWORD"
-
         # Navigate to the workspace directory (GCP Cloud Build automatically checks out code here)
         cd /workspace
-        
-        # List files to verify code is present
-        echo "Files in workspace:"
-        ls -la
-        
-        # Install project dependencies (in case there are new ones)
+
         echo "Installing dependencies..."
         poetry install --no-interaction --no-ansi --no-root
-        
+
         # Run database migrations
         echo "Running database migrations..."
         alembic upgrade head
-        
+
         echo "Migrations completed successfully!"
-        
-        # Kill the proxy
+
         kill $$PROXY_PID || true
 
 options:
