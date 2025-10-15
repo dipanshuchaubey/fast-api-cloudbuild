@@ -1,9 +1,8 @@
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 
-from repository import models
-from repository.db import engine
 from routes.index import root_route
 
 
@@ -16,9 +15,9 @@ async def lifecycle(app: FastAPI):
     print("Shutting down app")
 
 
-app = FastAPI(lifespan=lifecycle)
+load_dotenv()
 
-# models.Base.metadata.create_all(bind=engine)
+app = FastAPI(lifespan=lifecycle)
 
 # @app.middleware("http")
 # async def validate_auth_headers(request: Request, call_next):
