@@ -14,7 +14,7 @@ steps:
         chmod +x /usr/local/bin/cloud_sql_proxy
         
         echo "Starting Cloud SQL Proxy in background..."
-        /usr/local/bin/cloud_sql_proxy --port=5432 upheld-quasar-473307-h1:asia-south1:father-of-all-databases > /tmp/cloud_sql_proxy.log 2>&1 &
+        /usr/local/bin/cloud_sql_proxy -instances=upheld-quasar-473307-h1:asia-south1:father-of-all-databases=tcp:5432 > /tmp/cloud_sql_proxy.log 2>&1 &
         PROXY_PID=$$!
         
         echo "Cloud SQL Proxy started with PID: $$PROXY_PID"
