@@ -8,17 +8,36 @@ steps:
         set -e
         set -o pipefail
         
-        echo "Installing cloud-sql-proxy..."
-        apk add --no-cache wget
+        echo "Installing cloud-sql-proxy and netcat..."
+        apk add --no-cache wget netcat-openbsd
         wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O /usr/local/bin/cloud_sql_proxy
         chmod +x /usr/local/bin/cloud_sql_proxy
         
         echo "Starting Cloud SQL Proxy in background..."
-        /usr/local/bin/cloud_sql_proxy --port=5432 upheld-quasar-473307-h1:asia-south1:father-of-all-databases &
+        /usr/local/bin/cloud_sql_proxy --port=5432 upheld-quasar-473307-h1:asia-south1:father-of-all-databases > /tmp/cloud_sql_proxy.log 2>&1 &
         PROXY_PID=$$!
         
+        echo "Cloud SQL Proxy started with PID: $$PROXY_PID"
+        
         echo "Waiting for Cloud SQL Proxy to be ready..."
-        sleep 5
+        for i in 1 2 3 4 5 6 7 8 9 10; do
+          if nc -z 127.0.0.1 5432; then
+            echo "Cloud SQL Proxy is ready!"
+            break
+          fi
+          echo "Attempt $$i: Proxy not ready yet, waiting..."
+          sleep 2
+        done
+        
+        # Check if proxy is actually listening
+        if ! nc -z 127.0.0.1 5432; then
+          echo "ERROR: Cloud SQL Proxy failed to start!"
+          echo "Proxy logs:"
+          cat /tmp/cloud_sql_proxy.log
+          exit 1
+        fi
+        
+        echo "Cloud SQL Proxy is accepting connections on port 5432"
         
         # Set DB connection to use Cloud SQL Proxy (localhost:5432)
         export DB_HOST=127.0.0.1
