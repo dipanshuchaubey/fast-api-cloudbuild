@@ -21,7 +21,7 @@ steps:
         export DB_USER=${_DB_USER}
         export DB_PASSWORD=${_DB_PASSWORD}
 
-        echo "Environment values: $DB_HOST, $DB_PORT, $DB_DATABASE, $DB_USER, $DB_PASSWORD"
+        echo "Environment values: $$DB_HOST, $$DB_PORT, $$DB_DATABASE, $$DB_USER, $$DB_PASSWORD"
 
         # Navigate to the workspace directory (GCP Cloud Build automatically checks out code here)
         cd /workspace
