@@ -1,0 +1,41 @@
+steps:
+  - name: 'gcr.io/google-appengine/exec-wrapper'
+    id: 'CloudProxy'
+    waitFor: ['-']
+    entrypoint: 'sh'
+    args:
+      - "-c"
+      - "/cloud_sql_proxy --structured-logs --port=5432 upheld-quasar-473307-h1:asia-south1:father-of-all-databases &"
+
+  - name: 'asia-south1-docker.pkg.dev/upheld-quasar-473307-h1/testing-repo/fast-api'
+    id: 'Run Container'
+    waitFor: ['CloudProxy']
+    entrypoint: "sh"
+    args:
+      - '-c'
+      - |
+        echo "Container is running"
+        export DB_HOST=${_DB_HOST}
+        export DB_PORT=${_DB_PORT}
+        export DB_DATABASE=${_DB_DATABASE}
+        export DB_USER=${_DB_USER}
+        export DB_PASSWORD=${_DB_PASSWORD}
+
+        echo "Environment values: $DB_HOST, $DB_PORT, $DB_DATABASE, $DB_USER, $DB_PASSWORD"
+
+        # Navigate to the workspace directory (GCP Cloud Build automatically checks out code here)
+        cd /workspace
+        
+        # List files to verify code is present
+        echo "Files in workspace:"
+        ls -la
+        
+        # Install project dependencies (in case there are new ones)
+        echo "Installing dependencies..."
+        poetry install --no-interaction --no-ansi --no-root
+        
+        # Run database migrations
+        echo "Running database migrations..."
+        alembic upgrade head
+        
+        echo "Migrations completed successfully!"
