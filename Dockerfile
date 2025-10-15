@@ -1,13 +1,11 @@
-FROM python:3.12-alpine
+FROM python:3.13-alpine
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY pyproject.toml poetry.lock ./
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install poetry && \
+    poetry config virtualenvs.create false && \
+    poetry install --no-interaction --no-ansi --no-root
 
-COPY . .
-
-EXPOSE 80
-
-CMD ["fastapi", "run", "main.py", "--port", "80"]
+CMD [ "sleep", "infinity" ]
