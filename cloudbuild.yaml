@@ -39,3 +39,8 @@ steps:
         alembic upgrade head
         
         echo "Migrations completed successfully!"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: 3600s
