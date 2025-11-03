@@ -8,6 +8,8 @@ steps:
         set -e
         set -o pipefail
 
+        exit 1
+
         echo "Installing cloud-sql-proxy and netcat..."
         apk add --no-cache wget netcat-openbsd
         wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O /usr/local/bin/cloud_sql_proxy
