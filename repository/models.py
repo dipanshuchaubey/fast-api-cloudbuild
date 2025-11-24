@@ -36,6 +36,9 @@ class Item(Base):
 
 class Requisition(Base):
     __tablename__ = "requisitions"
+    __table_args__ = (
+        Index('ix_requisitions_tenant_id_status', 'tenant_id', 'status'),
+    )
 
     requisition_id = Column(String, primary_key=True, index=True)
     tenant_id = Column(Integer, index=True)
