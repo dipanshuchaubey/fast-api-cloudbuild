@@ -55,24 +55,30 @@ jobs:
                   repo: context.repo.repo,
                   issue_number: pr.number,
                   body: [
-                    '⚠️ **Base Branch Updated - Action Required**',
+                    '⚠️ **Base Branch Updated - Migration Conflict Check Required**',
                     '',
-                    `The base branch \`${baseBranch}\` has been updated with new changes.`,
+                    `The base branch \`${baseBranch}\` has been updated with new migrations.`,
                     '',
-                    '**To ensure your PR has no migration conflicts:**',
-                    '1. Click the **"Update branch"** button below, or run:',
+                    '**Action Required:**',
+                    '1. **Update your branch locally** to re-trigger CI checks:',
                     '   ```bash',
+                    `   git checkout ${pr.head.ref}`,
                     `   git pull origin ${baseBranch}`,
+                    '   git push',
                     '   ```',
-                    '2. Check for migration conflicts:',
+                    '2. **Check for migration conflicts locally:**',
                     '   ```bash',
                     '   ./scripts/check_migrations.sh',
                     '   ```',
-                    '3. If conflicts are detected, resolve them following the guide in `docs/ALEMBIC_MIGRATIONS.md`',
                     '',
-                    '**The CI checks will automatically re-run after you update your branch.**',
+                    '**If you see multiple migration heads:**',
+                    '- Follow the resolution steps in [`docs/ALEMBIC_MIGRATIONS.md`](../blob/main/docs/ALEMBIC_MIGRATIONS.md)',
+                    '- The recommended approach: rebase and recreate your migration',
                     '',
-                    '<sub>🤖 This is an automated message triggered by changes to the base branch.</sub>'
+                    '**Note:** The "Update branch" button may not trigger CI if there are no file conflicts.',
+                    'Pulling and pushing manually ensures CI runs to detect migration conflicts.',
+                    '',
+                    '<sub>🤖 Automated notification - base branch has new Alembic migrations</sub>'
                   ].join('\n')
                 });
                 
