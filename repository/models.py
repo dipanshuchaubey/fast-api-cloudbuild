@@ -51,6 +51,9 @@ class Requisition(Base):
 
 class PurchaseOrder(Base):
     __tablename__ = "purchase_orders"
+    __table_args__ = (
+        Index('ix_purchase_orders_po_id_tenant_id', 'po_id', 'tenant_id'),
+    )
 
     po_id = Column(String, primary_key=True, index=True)
     tenant_id = Column(Integer, index=True)
