@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -7,6 +7,9 @@ from .db import Base
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        Index('ix_users_email_tenant_id', 'email', 'tenant_id'),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, index=True)
