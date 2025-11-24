@@ -19,6 +19,7 @@ class User(Base):
 
     created_at = Column(DateTime(timezone=True), default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
 
     items = relationship("Item", back_populates="owner")
 
@@ -47,6 +48,7 @@ class Requisition(Base):
 
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), default=func.now())
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
 
 
 class PurchaseOrder(Base):
