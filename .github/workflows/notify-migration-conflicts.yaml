@@ -1,32 +1,27 @@
 name: Recheck Open PRs After Main Update
 
-# When CI runs on main/develop (after a merge), re-run checks on all open PRs
-# This ensures all PRs are validated against the latest base branch
+# Triggers when main/develop is updated (including PR merges)
+# Re-runs CI checks on all open PRs to catch migration conflicts
 
 on:
-  workflow_run:
-    workflows: ["CI"]
+  push:
     branches:
       - main
       - develop
-    types:
-      - completed
 
 jobs:
   retrigger-pr-checks:
     name: Re-run CI Checks on Open PRs
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     
     steps:
       - name: Re-trigger checks on all open PRs
         uses: actions/github-script@v7
         with:
           script: |
-            const workflowRun = context.payload.workflow_run;
-            const baseBranch = workflowRun.head_branch;
+            const baseBranch = context.ref.replace('refs/heads/', '');
             
-            console.log(`CI completed on ${baseBranch}. Re-triggering checks on open PRs...`);
+            console.log(`Branch ${baseBranch} was updated. Re-triggering checks on open PRs...`);
             
             // Get all open PRs targeting this branch
             const { data: pullRequests } = await github.rest.pulls.list({
@@ -38,6 +33,11 @@ jobs:
             });
             
             console.log(`Found ${pullRequests.length} open PR(s) targeting ${baseBranch}`);
+            
+            if (pullRequests.length === 0) {
+              console.log('No open PRs to recheck. Exiting.');
+              return;
+            }
             
             for (const pr of pullRequests) {
               console.log(`Re-running checks for PR #${pr.number}: "${pr.title}"`);
@@ -63,6 +63,8 @@ jobs:
                 } catch (error) {
                   console.log(`  ✗ Could not re-trigger checks for PR #${pr.number}: ${error.message}`);
                 }
+              } else {
+                console.log(`  ⚠ No check suites found for PR #${pr.number}`);
               }
             }
             
