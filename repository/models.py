@@ -59,6 +59,7 @@ class PurchaseOrder(Base):
     tenant_id = Column(Integer, index=True)
     po_title = Column(String, nullable=False)
     status = Column(String, nullable=False)
+    test_column = Column(String, nullable=True)
 
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), default=func.now())
