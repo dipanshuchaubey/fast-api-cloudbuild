@@ -1,0 +1,87 @@
+name: Notify Migration Changes
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'alembic/versions/**'
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  notify-prs:
+    name: Notify Open PRs to Update
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Notify open PRs about base branch update
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const baseBranch = context.ref.replace('refs/heads/', '');
+            
+            console.log(`Branch ${baseBranch} was updated. Notifying open PRs...`);
+            
+            // Get all open PRs targeting this branch
+            const { data: pullRequests } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              base: baseBranch,
+              per_page: 100
+            });
+            
+            console.log(`Found ${pullRequests.length} open PR(s) targeting ${baseBranch}`);
+            
+            if (pullRequests.length === 0) {
+              console.log('No open PRs to notify. Exiting.');
+              return;
+            }
+            
+            for (const pr of pullRequests) {
+              console.log(`Notifying PR #${pr.number}: "${pr.title}"`);
+              
+              try {
+                // Post a comment instructing to update the branch
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  body: [
+                    '⚠️ **Base Branch Updated - Migration Conflict Check Required**',
+                    '',
+                    `The base branch \`${baseBranch}\` has been updated with new migrations.`,
+                    '',
+                    '**Action Required:**',
+                    '1. **Update your branch locally** to re-trigger CI checks:',
+                    '   ```bash',
+                    `   git checkout ${pr.head.ref}`,
+                    `   git pull origin ${baseBranch}`,
+                    '   git push',
+                    '   ```',
+                    '2. **Check for migration conflicts locally:**',
+                    '   ```bash',
+                    '   ./scripts/check_migrations.sh',
+                    '   ```',
+                    '',
+                    '**If you see multiple migration heads:**',
+                    '- Follow the resolution steps in [`docs/ALEMBIC_MIGRATIONS.md`](../blob/main/docs/ALEMBIC_MIGRATIONS.md)',
+                    '- The recommended approach: rebase and recreate your migration',
+                    '',
+                    '**Note:** The "Update branch" button may not trigger CI if there are no file conflicts.',
+                    'Pulling and pushing manually ensures CI runs to detect migration conflicts.',
+                    '',
+                    '<sub>🤖 Automated notification - base branch has new Alembic migrations</sub>'
+                  ].join('\n')
+                });
+                
+                console.log(`  ✓ Posted notification on PR #${pr.number}`);
+              } catch (error) {
+                console.log(`  ✗ Error notifying PR #${pr.number}: ${error.message}`);
+              }
+            }
+            
+            console.log('Finished notifying all open PRs');
