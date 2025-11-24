@@ -12,7 +12,7 @@ permissions:
   pull-requests: write
   issues: write
   actions: write
-  contents: read
+  contents: write
 
 jobs:
   notify-prs:
@@ -71,39 +71,40 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Trigger CI on open PRs
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const baseBranch = 'main';
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Fetching open PRs to trigger CI..."
+          
+          # Get all open PRs
+          gh pr list --base main --state open --json number,headRefName --jq '.[] | "\(.number) \(.headRefName)"' | while read pr_num branch; do
+            echo "Triggering CI for PR #$pr_num ($branch)"
             
-            console.log('Fetching open PRs to trigger CI...');
+            # Fetch and checkout the PR branch
+            git fetch origin "$branch"
+            git checkout "$branch"
             
-            const { data: pullRequests } = await github.rest.pulls.list({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              base: baseBranch,
-              per_page: 100
-            });
+            # Create an empty commit to trigger CI
+            git commit --allow-empty -m "chore: trigger CI after main branch update [skip ci]"
             
-            console.log(`Found ${pullRequests.length} open PR(s)`);
+            # Push the commit
+            if git push origin "$branch"; then
+              echo "  ✓ Triggered CI for PR #$pr_num"
+            else
+              echo "  ✗ Failed to push to PR #$pr_num"
+            fi
             
-            for (const pr of pullRequests) {
-              console.log(`Triggering CI for PR #${pr.number} (${pr.head.ref})`);
-              
-              try {
-                await github.rest.actions.createWorkflowDispatch({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  workflow_id: 'ci.yaml',
-                  ref: pr.head.ref
-                });
-                console.log(`  ✓ Triggered CI for PR #${pr.number}`);
-              } catch (error) {
-                console.log(`  ✗ Failed to trigger CI for PR #${pr.number}: ${error.message}`);
-              }
-            }
-            
-            console.log('Finished triggering CI for all open PRs');
+            # Go back to main branch for next iteration
+            git checkout main
+          done
+          
+          echo "Finished triggering CI for all open PRs"
