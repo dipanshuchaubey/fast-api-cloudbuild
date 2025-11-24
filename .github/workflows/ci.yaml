@@ -31,3 +31,4 @@ jobs:
         run: |
           chmod +x scripts/check_migrations.sh
           ./scripts/check_migrations.sh
+
