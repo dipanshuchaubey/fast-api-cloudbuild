@@ -49,38 +49,17 @@ jobs:
               console.log(`Re-running checks for PR #${pr.number}: "${pr.title}"`);
               
               try {
-                // Get all check runs for this PR
-                const { data: checkRuns } = await github.rest.checks.listForRef({
+                // Trigger workflows by creating a check suite
+                await github.rest.checks.createSuite({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  ref: pr.head.sha,
-                  per_page: 100
+                  head_sha: pr.head.sha
                 });
                 
-                console.log(`  Found ${checkRuns.total_count} check runs`);
-                
-                // Re-run each check run
-                let rerunCount = 0;
-                for (const checkRun of checkRuns.check_runs) {
-                  // Only re-run checks from GitHub Actions (not external apps)
-                  if (checkRun.app.slug === 'github-actions') {
-                    try {
-                      await github.rest.checks.rerequestRun({
-                        owner: context.repo.owner,
-                        repo: context.repo.repo,
-                        check_run_id: checkRun.id
-                      });
-                      rerunCount++;
-                    } catch (error) {
-                      console.log(`    ⚠ Could not re-run check "${checkRun.name}": ${error.message}`);
-                    }
-                  }
-                }
-                
-                console.log(`  ✓ Re-triggered ${rerunCount} check(s) for PR #${pr.number}`);
+                console.log(`  ✓ Triggered new check suite for PR #${pr.number}`);
               } catch (error) {
-                console.log(`  ✗ Error processing PR #${pr.number}: ${error.message}`);
+                console.log(`  ✗ Error triggering checks for PR #${pr.number}: ${error.message}`);
               }
             }
             
-            console.log('Finished re-triggering checks on all open PRs');
+            console.log('Finished triggering checks on all open PRs');
