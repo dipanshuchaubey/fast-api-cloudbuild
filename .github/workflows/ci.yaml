@@ -9,6 +9,11 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  actions: write
+  contents: read
+  pull-requests: read
+
 jobs:
   check-migrations:
     runs-on: ubuntu-latest
@@ -31,4 +36,30 @@ jobs:
         run: |
           chmod +x scripts/check_migrations.sh
           ./scripts/check_migrations.sh
+
+  trigger-prs:
+    runs-on: ubuntu-latest
+    needs: check-migrations
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Trigger CI on open PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Fetching open PRs..."
+          gh pr list --base main --state open --json number,headRefName --jq '.[] | "\(.number) \(.headRefName)"' | while read pr_num branch; do
+            echo "Checking PR #$pr_num ($branch)"
+            # Find the latest workflow run for this PR
+            run_id=$(gh run list --workflow ci.yaml --branch "$branch" --event pull_request --limit 1 --json databaseId --jq '.[0].databaseId')
+            
+            if [ -n "$run_id" ] && [ "$run_id" != "null" ]; then
+              echo "Rerunning workflow run $run_id for PR #$pr_num"
+              gh run rerun "$run_id" || echo "Failed to rerun $run_id"
+            else
+              echo "No workflow run found for PR #$pr_num"
+            fi
+          done
 
