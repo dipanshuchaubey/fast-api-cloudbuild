@@ -9,6 +9,12 @@ on:
       - main
       - develop
 
+# Grant permissions to re-trigger workflows
+permissions:
+  checks: write
+  contents: read
+  pull-requests: read
+
 jobs:
   retrigger-pr-checks:
     name: Re-run CI Checks on Open PRs
