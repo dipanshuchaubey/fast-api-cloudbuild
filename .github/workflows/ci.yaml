@@ -1,125 +1,33 @@
 name: CI
 
 on:
-  pull_request:
-    branches:
-      - main
-      - develop
   push:
     branches:
       - main
-      - develop
-  workflow_dispatch:  # Allow manual triggering
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
-  check-alembic-migrations:
-    name: Check Alembic Migration Conflicts
+  check-migrations:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.13'
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install alembic sqlalchemy
+          pip install poetry
+          poetry config virtualenvs.create false
+          poetry install --no-root
 
-      - name: Check for multiple heads
+      - name: Check for migration conflicts
         run: |
-          echo "Checking for multiple migration heads..."
-
-          # Get the current heads
-          HEADS=$(alembic heads 2>&1)
-          HEAD_COUNT=$(echo "$HEADS" | grep -E "^[a-f0-9]+ \(head\)" | wc -l)
-
-          echo "Migration heads found:"
-          echo "$HEADS"
-          echo ""
-          echo "Number of heads: $HEAD_COUNT"
-
-          if [ "$HEAD_COUNT" -gt 1 ]; then
-            echo "❌ ERROR: Multiple migration heads detected!"
-            echo "This indicates a migration conflict."
-            echo ""
-            echo "To fix this:"
-            echo "1. Merge the latest changes from the base branch"
-            echo "2. Run: alembic merge heads -m 'merge migration heads'"
-            echo "3. Commit the merge migration file"
-            echo ""
-            echo "Or rebase your branch and recreate your migration on top of the latest changes."
-            exit 1
-          else
-            echo "✅ SUCCESS: Single migration head found. No conflicts detected."
-          fi
-
-      - name: Check for duplicate revision IDs
-        run: |
-          echo "Checking for duplicate revision IDs..."
-
-          DUPLICATES=$(grep -r "^revision.*=.*['\"]" alembic/versions/*.py | \
-                       sed "s/.*['\"]\\([a-f0-9]*\\)['\"].*/\\1/" | \
-                       sort | uniq -d)
-
-          if [ -n "$DUPLICATES" ]; then
-            echo "❌ ERROR: Duplicate revision IDs found:"
-            echo "$DUPLICATES"
-            exit 1
-          fi
-
-          echo "✅ No duplicate revision IDs found."
-
-      - name: Compare with base branch (PR only)
-        if: github.event_name == 'pull_request'
-        run: |
-          echo "Checking migrations against base branch..."
-
-          BASE_BRANCH="${{ github.base_ref }}"
-          echo "Base branch: $BASE_BRANCH"
-
-          # Get the merge base
-          git fetch origin "$BASE_BRANCH"
-          MERGE_BASE=$(git merge-base HEAD "origin/$BASE_BRANCH")
-
-          # Get new migration files in this PR
-          NEW_MIGRATIONS=$(git diff --name-only "$MERGE_BASE" HEAD -- alembic/versions/ | grep "\.py$" | grep -v __pycache__ || true)
-
-          if [ -n "$NEW_MIGRATIONS" ]; then
-            echo "New migrations in this PR:"
-            echo "$NEW_MIGRATIONS"
-            echo ""
-            
-            # For each new migration, check its down_revision
-            for migration in $NEW_MIGRATIONS; do
-              echo "Checking $migration..."
-              DOWN_REV=$(grep "down_revision.*=.*['\"]" "$migration" | sed "s/.*['\"]\\([a-f0-9]*\\)['\"].*/\\1/" | head -1)
-              
-              if [ "$DOWN_REV" != "None" ] && [ -n "$DOWN_REV" ]; then
-                echo "  Down revision: $DOWN_REV"
-                
-                # Check if the parent revision exists in base branch
-                git checkout "origin/$BASE_BRANCH" -- alembic/versions/ 2>/dev/null || true
-                
-                PARENT_EXISTS=$(grep -l "revision.*=.*['\"]$DOWN_REV['\"]" alembic/versions/*.py 2>/dev/null || echo "")
-                
-                # Restore current branch migrations
-                git checkout HEAD -- alembic/versions/
-                
-                if [ -z "$PARENT_EXISTS" ]; then
-                  echo "  ⚠️  Warning: Parent revision $DOWN_REV not found in base branch"
-                  echo "  This might indicate you need to rebase on the latest changes"
-                else
-                  echo "  ✅ Parent revision exists in base branch"
-                fi
-              fi
-            done
-          else
-            echo "No new migrations found in this PR."
-          fi
+          chmod +x scripts/check_migrations.sh
+          ./scripts/check_migrations.sh
