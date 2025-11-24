@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'alembic/versions/**'
+      - '.github/workflows/**'
 
 permissions:
   pull-requests: write
