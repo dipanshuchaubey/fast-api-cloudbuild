@@ -1,7 +1,7 @@
 """requisition_deleted
 
 Revision ID: bc8fa73509a7
-Revises: 3095dd1eec5b
+Revises: fc7c7c083f7c
 Create Date: 2025-11-25 02:16:12.995339
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'bc8fa73509a7'
-down_revision: Union[str, Sequence[str], None] = '3095dd1eec5b'
+down_revision: Union[str, Sequence[str], None] = 'fc7c7c083f7c'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
