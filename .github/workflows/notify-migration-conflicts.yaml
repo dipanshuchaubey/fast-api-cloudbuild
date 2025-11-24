@@ -1,7 +1,7 @@
-name: Recheck Open PRs After Main Update
+name: Notify PRs After Main Update
 
-# Triggers when main/develop is updated (including PR merges)
-# Re-runs CI checks on all open PRs to catch migration conflicts
+# When main/develop is updated, notify all open PRs to update their branches
+# This ensures developers rebase and CI re-runs to catch migration conflicts
 
 on:
   push:
@@ -9,26 +9,25 @@ on:
       - main
       - develop
 
-# Grant permissions to re-trigger workflows
+# Grant permissions to post comments
 permissions:
-  actions: write
-  checks: write
   contents: read
+  issues: write
   pull-requests: write
 
 jobs:
-  retrigger-pr-checks:
-    name: Re-run CI Checks on Open PRs
+  notify-prs:
+    name: Notify Open PRs to Update
     runs-on: ubuntu-latest
     
     steps:
-      - name: Re-trigger checks on all open PRs
+      - name: Notify open PRs about base branch update
         uses: actions/github-script@v7
         with:
           script: |
             const baseBranch = context.ref.replace('refs/heads/', '');
             
-            console.log(`Branch ${baseBranch} was updated. Re-triggering checks on open PRs...`);
+            console.log(`Branch ${baseBranch} was updated. Notifying open PRs...`);
             
             // Get all open PRs targeting this branch
             const { data: pullRequests } = await github.rest.pulls.list({
@@ -42,53 +41,45 @@ jobs:
             console.log(`Found ${pullRequests.length} open PR(s) targeting ${baseBranch}`);
             
             if (pullRequests.length === 0) {
-              console.log('No open PRs to recheck. Exiting.');
+              console.log('No open PRs to notify. Exiting.');
               return;
             }
-            
-            // Get the CI workflow ID
-            const { data: workflows } = await github.rest.actions.listRepoWorkflows({
-              owner: context.repo.owner,
-              repo: context.repo.repo
-            });
-            
-            const ciWorkflow = workflows.workflows.find(w => w.name === 'CI');
-            if (!ciWorkflow) {
-              console.log('CI workflow not found!');
-              return;
-            }
-            
-            console.log(`Found CI workflow: ${ciWorkflow.name} (ID: ${ciWorkflow.id})`);
             
             for (const pr of pullRequests) {
-              console.log(`Triggering CI for PR #${pr.number}: "${pr.title}"`);
+              console.log(`Notifying PR #${pr.number}: "${pr.title}"`);
               
               try {
-                // Trigger the workflow on the PR's branch
-                await github.rest.actions.createWorkflowDispatch({
+                // Post a comment instructing to update the branch
+                await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  workflow_id: ciWorkflow.id,
-                  ref: pr.head.ref
+                  issue_number: pr.number,
+                  body: [
+                    '⚠️ **Base Branch Updated - Action Required**',
+                    '',
+                    `The base branch \`${baseBranch}\` has been updated with new changes.`,
+                    '',
+                    '**To ensure your PR has no migration conflicts:**',
+                    '1. Click the **"Update branch"** button below, or run:',
+                    '   ```bash',
+                    `   git pull origin ${baseBranch}`,
+                    '   ```',
+                    '2. Check for migration conflicts:',
+                    '   ```bash',
+                    '   ./scripts/check_migrations.sh',
+                    '   ```',
+                    '3. If conflicts are detected, resolve them following the guide in `docs/ALEMBIC_MIGRATIONS.md`',
+                    '',
+                    '**The CI checks will automatically re-run after you update your branch.**',
+                    '',
+                    '<sub>🤖 This is an automated message triggered by changes to the base branch.</sub>'
+                  ].join('\n')
                 });
                 
-                console.log(`  ✓ Triggered CI workflow for PR #${pr.number}`);
+                console.log(`  ✓ Posted notification on PR #${pr.number}`);
               } catch (error) {
-                console.log(`  ✗ Error: ${error.message}`);
-                
-                // Fallback: Add a comment to trigger activity
-                try {
-                  await github.rest.issues.createComment({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: pr.number,
-                    body: `🔄 Base branch \`${baseBranch}\` was updated. Please update your branch to ensure there are no migration conflicts.\n\n\`\`\`bash\ngit pull origin ${baseBranch}\n./scripts/check_migrations.sh\n\`\`\``
-                  });
-                  console.log(`  ℹ️  Posted comment on PR #${pr.number} as fallback`);
-                } catch (commentError) {
-                  console.log(`  ✗  Could not post comment: ${commentError.message}`);
-                }
+                console.log(`  ✗ Error notifying PR #${pr.number}: ${error.message}`);
               }
             }
             
-            console.log('Finished triggering checks on all open PRs');
+            console.log('Finished notifying all open PRs');
