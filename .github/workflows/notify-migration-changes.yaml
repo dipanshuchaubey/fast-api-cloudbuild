@@ -10,6 +10,8 @@ on:
 permissions:
   pull-requests: write
   issues: write
+  actions: write
+  contents: read
 
 jobs:
   notify-prs:
@@ -50,32 +52,7 @@ jobs:
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: pr.number,
-                  body: [
-                    '⚠️ **Base Branch Updated - Migration Conflict Check Required**',
-                    '',
-                    `The base branch \`${baseBranch}\` has been updated with new migrations.`,
-                    '',
-                    '**Action Required:**',
-                    '1. **Update your branch locally** to re-trigger CI checks:',
-                    '   ```bash',
-                    `   git checkout ${pr.head.ref}`,
-                    `   git pull origin ${baseBranch}`,
-                    '   git push',
-                    '   ```',
-                    '2. **Check for migration conflicts locally:**',
-                    '   ```bash',
-                    '   ./scripts/check_migrations.sh',
-                    '   ```',
-                    '',
-                    '**If you see multiple migration heads:**',
-                    '- Follow the resolution steps in [`docs/ALEMBIC_MIGRATIONS.md`](../blob/main/docs/ALEMBIC_MIGRATIONS.md)',
-                    '- The recommended approach: rebase and recreate your migration',
-                    '',
-                    '**Note:** The "Update branch" button may not trigger CI if there are no file conflicts.',
-                    'Pulling and pushing manually ensures CI runs to detect migration conflicts.',
-                    '',
-                    '<sub>🤖 Automated notification - base branch has new Alembic migrations</sub>'
-                  ].join('\n')
+                  body: `🔄 Base branch \`${baseBranch}\` was updated. Please update your branch to ensure there are no migration conflicts.\n\n\`\`\`bash\ngit pull origin ${baseBranch}\n./scripts/check_migrations.sh\n\`\`\``
                 });
                 
                 console.log(`  ✓ Posted notification on PR #${pr.number}`);
@@ -85,3 +62,29 @@ jobs:
             }
             
             console.log('Finished notifying all open PRs');
+
+  trigger-prs:
+    name: Trigger CI on Open PRs
+    runs-on: ubuntu-latest
+    needs: notify-prs
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Trigger CI on open PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Fetching open PRs..."
+          gh pr list --base main --state open --json number,headRefName --jq '.[] | "\(.number) \(.headRefName)"' | while read pr_num branch; do
+            echo "Checking PR #$pr_num ($branch)"
+            # Find the latest workflow run for this PR
+            run_id=$(gh run list --workflow ci.yaml --branch "$branch" --event pull_request --limit 1 --json databaseId --jq '.[0].databaseId')
+            
+            if [ -n "$run_id" ] && [ "$run_id" != "null" ]; then
+              echo "Rerunning workflow run $run_id for PR #$pr_num"
+              gh run rerun "$run_id" || echo "Failed to rerun $run_id"
+            else
+              echo "No workflow run found for PR #$pr_num"
+            fi
+          done
