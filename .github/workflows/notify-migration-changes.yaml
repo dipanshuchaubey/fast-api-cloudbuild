@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'alembic/versions/**'
+      - '.github/workflows/**'
 
 permissions:
   pull-requests: write
@@ -56,14 +57,8 @@ jobs:
                 });
                 
                 console.log(`  ✓ Posted notification on PR #${pr.number}`);
-              } catch (error) {
-                } catch (commentError) {
-                  console.log(`  ✗  Could not post comment: ${commentError.message}`);
-                }
-              }
-            }
-            
-            console.log('Finished notifying all open PRs');
+              } catch (commentError) {
+                console.log(`  ✗ Could not post comment: ${commentError.message}`);
               }
             }
             
