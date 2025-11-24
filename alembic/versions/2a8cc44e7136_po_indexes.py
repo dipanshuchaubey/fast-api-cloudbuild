@@ -1,7 +1,7 @@
 """po_indexes
 
 Revision ID: 2a8cc44e7136
-Revises: 5f75270bed04
+Revises: 431f2f2f3bb8
 Create Date: 2025-11-24 19:22:55.130064
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '2a8cc44e7136'
-down_revision: Union[str, Sequence[str], None] = '5f75270bed04'
+down_revision: Union[str, Sequence[str], None] = '431f2f2f3bb8'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
