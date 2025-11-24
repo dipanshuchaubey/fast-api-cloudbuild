@@ -63,3 +63,4 @@ class PurchaseOrder(Base):
 
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), default=func.now())
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
