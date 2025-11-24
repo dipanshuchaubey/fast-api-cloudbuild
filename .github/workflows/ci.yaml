@@ -79,7 +79,6 @@ jobs:
       - name: Compare with base branch (PR only)
         if: github.event_name == 'pull_request'
         run: |
-          set -e
           echo "Checking migrations against base branch..."
 
           BASE_BRANCH="${{ github.base_ref }}"
@@ -100,39 +99,30 @@ jobs:
             # For each new migration, check its down_revision
             for migration in $NEW_MIGRATIONS; do
               echo "Checking $migration..."
-              DOWN_REV=$(grep "down_revision.*=.*['\"]" "$migration" | sed "s/.*['\"]\\([a-f0-9]*\\)['\"].*/\\1/" | head -1 || echo "None")
+              DOWN_REV=$(grep "down_revision.*=.*['\"]" "$migration" | sed "s/.*['\"]\\([a-f0-9]*\\)['\"].*/\\1/" | head -1)
               
               if [ "$DOWN_REV" != "None" ] && [ -n "$DOWN_REV" ]; then
                 echo "  Down revision: $DOWN_REV"
                 
                 # Check if the parent revision exists in base branch
-                set +e
-                git checkout "origin/$BASE_BRANCH" -- alembic/versions/ 2>/dev/null
-                CHECKOUT_STATUS=$?
-                set -e
+                git checkout "origin/$BASE_BRANCH" -- alembic/versions/ 2>/dev/null || true
                 
-                if [ $CHECKOUT_STATUS -eq 0 ]; then
-                  PARENT_EXISTS=$(grep -l "revision.*=.*['\"]$DOWN_REV['\"]" alembic/versions/*.py 2>/dev/null || echo "")
-                  
-                  # Restore current branch migrations
-                  git checkout HEAD -- alembic/versions/
-                  
-                  if [ -z "$PARENT_EXISTS" ]; then
-                    echo "  ⚠️  Warning: Parent revision $DOWN_REV not found in base branch"
-                    echo "  This might indicate you need to rebase on the latest changes"
-                  else
-                    echo "  ✅ Parent revision exists in base branch"
-                  fi
+                PARENT_EXISTS=$(grep -l "revision.*=.*['\"]$DOWN_REV['\"]" alembic/versions/*.py 2>/dev/null || echo "")
+                
+                # Restore current branch migrations
+                git checkout HEAD -- alembic/versions/
+                
+                if [ -z "$PARENT_EXISTS" ]; then
+                  echo "  ⚠️  Warning: Parent revision $DOWN_REV not found in base branch"
+                  echo "  This might indicate you need to rebase on the latest changes"
                 else
-                  echo "  ℹ️  Could not check base branch (might be first migration)"
+                  echo "  ✅ Parent revision exists in base branch"
                 fi
               fi
             done
           else
             echo "No new migrations found in this PR."
           fi
-          
-          echo "✅ Migration check completed successfully"
 
   trigger-prs:
     runs-on: ubuntu-latest
