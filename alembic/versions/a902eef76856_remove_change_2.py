@@ -1,7 +1,7 @@
 """remove_change_2
 
 Revision ID: a902eef76856
-Revises: aee0dad93075
+Revises: c67e2a32e48b
 Create Date: 2025-11-25 01:31:49.741139
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'a902eef76856'
-down_revision: Union[str, Sequence[str], None] = 'aee0dad93075'
+down_revision: Union[str, Sequence[str], None] = 'c67e2a32e48b'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
