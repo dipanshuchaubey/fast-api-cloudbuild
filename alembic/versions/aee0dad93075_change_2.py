@@ -1,7 +1,7 @@
 """change_2
 
 Revision ID: aee0dad93075
-Revises: 2a8cc44e7136
+Revises: 81422c015a67
 Create Date: 2025-11-25 00:38:04.357157
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'aee0dad93075'
-down_revision: Union[str, Sequence[str], None] = '2a8cc44e7136'
+down_revision: Union[str, Sequence[str], None] = '81422c015a67'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
