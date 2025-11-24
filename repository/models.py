@@ -44,3 +44,15 @@ class Requisition(Base):
 
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), default=func.now())
+
+
+class PurchaseOrder(Base):
+    __tablename__ = "purchase_orders"
+
+    po_id = Column(String, primary_key=True, index=True)
+    tenant_id = Column(Integer, index=True)
+    po_title = Column(String, nullable=False)
+    status = Column(String, nullable=False)
+
+    created_by = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime(timezone=True), default=func.now())
