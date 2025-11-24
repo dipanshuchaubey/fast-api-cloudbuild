@@ -9,83 +9,47 @@ on:
       - main
       - develop
 
-# Grant permissions to post comments
+# Grant permissions to push to PR branches
 permissions:
-  contents: read
-  issues: write
-  pull-requests: write
+  contents: write
+  pull-requests: read
 
 jobs:
-  notify-prs:
-    name: Notify Open PRs to Update
+  trigger-pr-ci:
+    name: Trigger CI on Open PRs
     runs-on: ubuntu-latest
     
     steps:
-      - name: Notify open PRs about base branch update
-        uses: actions/github-script@v7
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          script: |
-            const baseBranch = context.ref.replace('refs/heads/', '');
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Trigger CI on all open PRs
+        run: |
+          # Get all open PRs
+          PRS=$(gh pr list --base main --state open --json number,headRefName --jq '.[] | "\(.number):\(.headRefName)"')
+          
+          if [ -z "$PRS" ]; then
+            echo "No open PRs found"
+            exit 0
+          fi
+          
+          echo "$PRS" | while IFS=: read -r PR_NUMBER BRANCH; do
+            echo "Triggering CI for PR #$PR_NUMBER (branch: $BRANCH)"
             
-            console.log(`Branch ${baseBranch} was updated. Notifying open PRs...`);
+            # Fetch and checkout the PR branch
+            git fetch origin "$BRANCH"
+            git checkout "$BRANCH"
             
-            // Get all open PRs targeting this branch
-            const { data: pullRequests } = await github.rest.pulls.list({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              base: baseBranch,
-              per_page: 100
-            });
+            # Create an empty commit to trigger CI
+            git commit --allow-empty -m "chore: trigger CI after base branch update [skip ci]"
             
-            console.log(`Found ${pullRequests.length} open PR(s) targeting ${baseBranch}`);
+            # Push to trigger the workflow
+            git push origin "$BRANCH"
             
-            if (pullRequests.length === 0) {
-              console.log('No open PRs to notify. Exiting.');
-              return;
-            }
-            
-            for (const pr of pullRequests) {
-              console.log(`Notifying PR #${pr.number}: "${pr.title}"`);
-              
-              try {
-                // Post a comment instructing to update the branch
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: pr.number,
-                  body: [
-                    '⚠️ **Base Branch Updated - Migration Conflict Check Required**',
-                    '',
-                    `The base branch \`${baseBranch}\` has been updated with new migrations.`,
-                    '',
-                    '**Action Required:**',
-                    '1. **Update your branch locally** to re-trigger CI checks:',
-                    '   ```bash',
-                    `   git checkout ${pr.head.ref}`,
-                    `   git pull origin ${baseBranch}`,
-                    '   git push',
-                    '   ```',
-                    '2. **Check for migration conflicts locally:**',
-                    '   ```bash',
-                    '   ./scripts/check_migrations.sh',
-                    '   ```',
-                    '',
-                    '**If you see multiple migration heads:**',
-                    '- Follow the resolution steps in [`docs/ALEMBIC_MIGRATIONS.md`](../blob/main/docs/ALEMBIC_MIGRATIONS.md)',
-                    '- The recommended approach: rebase and recreate your migration',
-                    '',
-                    '**Note:** The "Update branch" button may not trigger CI if there are no file conflicts.',
-                    'Pulling and pushing manually ensures CI runs to detect migration conflicts.',
-                    '',
-                    '<sub>🤖 Automated notification - base branch has new Alembic migrations</sub>'
-                  ].join('\n')
-                });
-                
-                console.log(`  ✓ Posted notification on PR #${pr.number}`);
-              } catch (error) {
-                console.log(`  ✗ Error notifying PR #${pr.number}: ${error.message}`);
-              }
-            }
-            
-            console.log('Finished notifying all open PRs');
+            echo "✓ Triggered CI for PR #$PR_NUMBER"
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
