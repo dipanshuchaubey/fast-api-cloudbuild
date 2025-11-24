@@ -11,9 +11,10 @@ on:
 
 # Grant permissions to re-trigger workflows
 permissions:
+  actions: write
   checks: write
   contents: read
-  pull-requests: read
+  pull-requests: write
 
 jobs:
   retrigger-pr-checks:
@@ -45,20 +46,48 @@ jobs:
               return;
             }
             
+            // Get the CI workflow ID
+            const { data: workflows } = await github.rest.actions.listRepoWorkflows({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            
+            const ciWorkflow = workflows.workflows.find(w => w.name === 'CI');
+            if (!ciWorkflow) {
+              console.log('CI workflow not found!');
+              return;
+            }
+            
+            console.log(`Found CI workflow: ${ciWorkflow.name} (ID: ${ciWorkflow.id})`);
+            
             for (const pr of pullRequests) {
-              console.log(`Re-running checks for PR #${pr.number}: "${pr.title}"`);
+              console.log(`Triggering CI for PR #${pr.number}: "${pr.title}"`);
               
               try {
-                // Trigger workflows by creating a check suite
-                await github.rest.checks.createSuite({
+                // Trigger the workflow on the PR's branch
+                await github.rest.actions.createWorkflowDispatch({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  head_sha: pr.head.sha
+                  workflow_id: ciWorkflow.id,
+                  ref: pr.head.ref
                 });
                 
-                console.log(`  ✓ Triggered new check suite for PR #${pr.number}`);
+                console.log(`  ✓ Triggered CI workflow for PR #${pr.number}`);
               } catch (error) {
-                console.log(`  ✗ Error triggering checks for PR #${pr.number}: ${error.message}`);
+                console.log(`  ✗ Error: ${error.message}`);
+                
+                // Fallback: Add a comment to trigger activity
+                try {
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    body: `🔄 Base branch \`${baseBranch}\` was updated. Please update your branch to ensure there are no migration conflicts.\n\n\`\`\`bash\ngit pull origin ${baseBranch}\n./scripts/check_migrations.sh\n\`\`\``
+                  });
+                  console.log(`  ℹ️  Posted comment on PR #${pr.number} as fallback`);
+                } catch (commentError) {
+                  console.log(`  ✗  Could not post comment: ${commentError.message}`);
+                }
               }
             }
             
