@@ -1,7 +1,7 @@
 """add indexing
 
 Revision ID: 5f75270bed04
-Revises: 7f58104d85ab
+Revises: 9b5e8ebfd6d2
 Create Date: 2025-11-24 17:11:42.680339
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '5f75270bed04'
-down_revision: Union[str, Sequence[str], None] = '7f58104d85ab'
+down_revision: Union[str, Sequence[str], None] = '9b5e8ebfd6d2'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
