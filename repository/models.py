@@ -52,6 +52,7 @@ class Requisition(Base):
     deleted_at = Column(DateTime(timezone=True), nullable=True)
 
 
+
 class PurchaseOrder(Base):
     __tablename__ = "purchase_orders"
     __table_args__ = (
