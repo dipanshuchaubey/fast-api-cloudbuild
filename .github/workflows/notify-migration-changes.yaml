@@ -74,7 +74,7 @@ jobs:
 
       - name: Trigger CI on open PRs
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           echo "Fetching open PRs..."
           gh pr list --base main --state open --json number,headRefName --jq '.[] | "\(.number) \(.headRefName)"' | while read pr_num branch; do
@@ -84,7 +84,11 @@ jobs:
             
             if [ -n "$run_id" ] && [ "$run_id" != "null" ]; then
               echo "Rerunning workflow run $run_id for PR #$pr_num"
-              gh run rerun "$run_id" || echo "Failed to rerun $run_id"
+              if gh run rerun "$run_id"; then
+                echo "✓ Successfully reran workflow for PR #$pr_num"
+              else
+                echo "✗ Failed to rerun workflow for PR #$pr_num"
+              fi
             else
               echo "No workflow run found for PR #$pr_num"
             fi
