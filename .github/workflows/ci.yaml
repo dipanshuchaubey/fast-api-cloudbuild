@@ -38,28 +38,6 @@ jobs:
         run: |
           echo "Checking for multiple migration heads..."
 
-<<<<<<< Updated upstream
-          # Get the current heads
-          HEADS=$(alembic heads 2>&1)
-          HEAD_COUNT=$(echo "$HEADS" | grep -E "^[a-f0-9]+ \(head\)" | wc -l)
-
-          echo "Migration heads found:"
-          echo "$HEADS"
-          echo ""
-          echo "Number of heads: $HEAD_COUNT"
-
-          if [ "$HEAD_COUNT" -gt 1 ]; then
-            echo "❌ ERROR: Multiple migration heads detected!"
-            echo "This indicates a migration conflict."
-            echo ""
-            echo "To fix this:"
-            echo "1. Merge the latest changes from the base branch"
-            echo "2. Run: alembic merge heads -m 'merge migration heads'"
-            echo "3. Commit the merge migration file"
-            echo ""
-            echo "Or rebase your branch and recreate your migration on top of the latest changes."
-            exit 1
-=======
           # For PRs, check if merging with main would create conflicts
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "Simulating merge with base branch to detect conflicts..."
@@ -107,7 +85,6 @@ jobs:
             
             # Restore PR state
             git checkout HEAD -- alembic/versions/
->>>>>>> Stashed changes
           else
             echo "✅ SUCCESS: Single migration head found. No conflicts detected."
           fi
