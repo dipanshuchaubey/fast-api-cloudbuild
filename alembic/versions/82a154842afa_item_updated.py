@@ -1,7 +1,7 @@
 """item_updated
 
 Revision ID: 82a154842afa
-Revises: bc8fa73509a7
+Revises: f821fa6de835
 Create Date: 2025-11-25 02:46:23.602904
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '82a154842afa'
-down_revision: Union[str, Sequence[str], None] = 'bc8fa73509a7'
+down_revision: Union[str, Sequence[str], None] = 'f821fa6de835'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
