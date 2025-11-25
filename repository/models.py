@@ -33,6 +33,7 @@ class Item(Base):
     owner_id = Column(Integer, ForeignKey("users.id"))
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     created_at = Column(DateTime(timezone=True), default=func.now())
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
 
     new_test_col = Column(String, nullable=True)
     owner = relationship("User", back_populates="items")
