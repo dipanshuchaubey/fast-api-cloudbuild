@@ -86,8 +86,23 @@ jobs:
             # Restore PR state
             git checkout HEAD -- alembic/versions/
           else
-            echo "✅ SUCCESS: Single migration head found. No conflicts detected."
+            # For push to main, just check current state
+            HEADS=$(alembic heads 2>&1)
+            HEAD_COUNT=$(echo "$HEADS" | grep -E "^[a-f0-9]+ \(head\)" | wc -l)
+
+            echo "Migration heads found:"
+            echo "$HEADS"
+            echo ""
+            echo "Number of heads: $HEAD_COUNT"
+
+            if [ "$HEAD_COUNT" -gt 1 ]; then
+              echo "❌ ERROR: Multiple migration heads detected!"
+              echo "This indicates a migration conflict."
+              exit 1
+            fi
           fi
+          
+          echo "✅ SUCCESS: No migration conflicts detected."
 
       - name: Check for duplicate revision IDs
         run: |
