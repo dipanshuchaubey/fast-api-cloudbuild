@@ -1,7 +1,7 @@
 """item_deleted_at
 
 Revision ID: 6bdae2a6564f
-Revises: c6bce05e68da
+Revises: 0ac9885734b7
 Create Date: 2025-11-25 16:43:37.491881
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '6bdae2a6564f'
-down_revision: Union[str, Sequence[str], None] = 'c6bce05e68da'
+down_revision: Union[str, Sequence[str], None] = '0ac9885734b7'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
