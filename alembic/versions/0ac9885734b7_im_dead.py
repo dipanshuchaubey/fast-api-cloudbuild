@@ -1,7 +1,7 @@
 """im_dead
 
 Revision ID: 0ac9885734b7
-Revises: 82a154842afa
+Revises: c6bce05e68da
 Create Date: 2025-11-25 14:55:02.194529
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '0ac9885734b7'
-down_revision: Union[str, Sequence[str], None] = '82a154842afa'
+down_revision: Union[str, Sequence[str], None] = 'c6bce05e68da'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
