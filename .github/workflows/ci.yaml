@@ -46,8 +46,22 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for migration changes
+        id: check-migrations
+        run: |
+          if git diff --name-only HEAD^ HEAD | grep -q '^alembic/versions/'; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "Migration changes detected"
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "No migration changes detected"
+          fi
 
       - name: Trigger CI on open PRs
+        if: steps.check-migrations.outputs.has_changes == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
