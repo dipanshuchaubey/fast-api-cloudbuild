@@ -31,6 +31,7 @@ class Item(Base):
     title = Column(String, index=True)
     description = Column(String, index=True)
     owner_id = Column(Integer, ForeignKey("users.id"))
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     created_at = Column(DateTime(timezone=True), default=func.now())
 
     owner = relationship("User", back_populates="items")
@@ -50,6 +51,7 @@ class Requisition(Base):
     created_by = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), default=func.now())
     deleted_at = Column(DateTime(timezone=True), nullable=True)
+
 
 
 class PurchaseOrder(Base):
