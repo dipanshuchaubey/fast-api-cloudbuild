@@ -35,6 +35,7 @@ class Item(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     created_at = Column(DateTime(timezone=True), default=func.now())
 
+    new_test_col = Column(String, nullable=True)
     owner = relationship("User", back_populates="items")
 
 
