@@ -38,6 +38,7 @@ jobs:
         run: |
           echo "Checking for multiple migration heads..."
 
+<<<<<<< Updated upstream
           # Get the current heads
           HEADS=$(alembic heads 2>&1)
           HEAD_COUNT=$(echo "$HEADS" | grep -E "^[a-f0-9]+ \(head\)" | wc -l)
@@ -58,6 +59,55 @@ jobs:
             echo ""
             echo "Or rebase your branch and recreate your migration on top of the latest changes."
             exit 1
+=======
+          # For PRs, check if merging with main would create conflicts
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "Simulating merge with base branch to detect conflicts..."
+            
+            # Get current PR migrations
+            echo "PR branch migrations:"
+            PR_MIGRATIONS=$(ls -1 alembic/versions/*.py 2>/dev/null | grep -v __pycache__ || true)
+            echo "$PR_MIGRATIONS"
+            echo ""
+            
+            # Fetch and get main branch migrations
+            git fetch origin ${{ github.base_ref }}
+            echo "Fetching main branch migrations..."
+            git checkout origin/${{ github.base_ref }} -- alembic/versions/
+            
+            echo "Main branch migrations:"
+            MAIN_MIGRATIONS=$(ls -1 alembic/versions/*.py 2>/dev/null | grep -v __pycache__ || true)
+            echo "$MAIN_MIGRATIONS"
+            echo ""
+            
+            # Now we have BOTH sets of migrations - check for multiple heads
+            echo "Checking combined migrations (simulated merge)..."
+            HEADS=$(alembic heads 2>&1)
+            HEAD_COUNT=$(echo "$HEADS" | grep -E "^[a-f0-9]+ \(head\)" | wc -l)
+            
+            echo "Combined migration heads:"
+            echo "$HEADS"
+            echo ""
+            echo "Number of heads: $HEAD_COUNT"
+            
+            if [ "$HEAD_COUNT" -gt 1 ]; then
+              echo "❌ ERROR: Multiple migration heads detected after merge!"
+              echo "This indicates a migration conflict between your PR and ${{ github.base_ref }}."
+              echo ""
+              echo "To fix this:"
+              echo "1. Pull the latest changes from ${{ github.base_ref }}"
+              echo "2. Delete your migration file"
+              echo "3. Merge/rebase with ${{ github.base_ref }}"
+              echo "4. Recreate your migration: alembic revision --autogenerate -m 'your message'"
+              echo ""
+              echo "Alternatively, you can merge the heads:"
+              echo "  alembic merge heads -m 'merge migration heads'"
+              exit 1
+            fi
+            
+            # Restore PR state
+            git checkout HEAD -- alembic/versions/
+>>>>>>> Stashed changes
           else
             echo "✅ SUCCESS: Single migration head found. No conflicts detected."
           fi
